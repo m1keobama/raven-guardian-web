@@ -24,7 +24,7 @@ const firebaseConfig = {
 
 // -----------------------------------------------------------
 
-const isConfigured = firebaseConfig.apiKey !== "AIzaSyC6UFsmEYzgGFHJfnG5ceVcz-U-wroIflM";
+const isConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.databaseURL;
 
 let app;
 let db: any = null;
