@@ -125,7 +125,7 @@ const defaultContent = {
 const ContentContext = createContext<any>(null);
 
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [content, setContent] = useState(defaultContent);
+  const [content, setContent] = useState<any>(defaultContent);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isDbConnected, setIsDbConnected] = useState(false);
 
