@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useContent } from '../contexts/ContentContext';
-import { Lock, LogOut, Upload, Image as ImageIcon, Settings, ShieldCheck, AlertCircle, PanelBottom, Key, Database, WifiOff, CheckCircle } from 'lucide-react';
+import { Lock, LogOut, Upload, Image as ImageIcon, Settings, ShieldCheck, AlertCircle, PanelBottom, Key, Database, WifiOff, CheckCircle, Loader2 } from 'lucide-react';
+import { storage } from '../firebase';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Helper Component for Image Upload/URL Input
 const ImageInput: React.FC<{
@@ -8,17 +10,45 @@ const ImageInput: React.FC<{
   value: string;
   onChange: (value: string) => void;
 }> = ({ label, value, onChange }) => {
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      // In einer echten App würde man das Bild hier zu Firebase Storage hochladen
-      // Da wir nur Realtime Database nutzen, konvertieren wir kleine Bilder zu Base64 oder nutzen Blob URLs temporär
-      // Für eine permanente Lösung müsste man Firebase Storage konfigurieren.
-      // Hier nutzen wir CreateObjectURL als temporäre Lösung (Achtung: Funktioniert nur lokal im Browser, nicht für andere User)
-      // Um es für alle sichtbar zu machen, sollte man externe URLs nutzen oder Firebase Storage implementieren.
-      const imageUrl = URL.createObjectURL(file);
-      onChange(imageUrl);
-      alert("Hinweis: Direktes Hochladen von Dateien erfordert Firebase Storage. Bitte nutzen Sie für öffentliche Sichtbarkeit idealerweise Links zu bereits gehosteten Bildern (z.B. Imgur, Unsplash), oder konfigurieren Sie Firebase Storage.");
+      
+      // Prüfen ob Storage konfiguriert ist
+      if (!storage) {
+        alert("Fehler: Firebase Storage ist nicht verfügbar. Bitte stellen Sie sicher, dass Sie 'Storage' in der Firebase Konsole aktiviert haben und die firebase.ts korrekt konfiguriert ist.");
+        return;
+      }
+
+      setIsUploading(true);
+      try {
+        // 1. Referenz erstellen (wo soll das Bild gespeichert werden?)
+        // Wir nutzen einen Zeitstempel im Namen, damit Dateien nicht überschrieben werden
+        const fileName = `uploads/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
+        const fileRef = storageRef(storage, fileName);
+
+        // 2. Hochladen
+        await uploadBytes(fileRef, file);
+
+        // 3. Den öffentlichen Link abrufen
+        const downloadURL = await getDownloadURL(fileRef);
+
+        // 4. Den Link speichern
+        onChange(downloadURL);
+      } catch (error: any) {
+        console.error("Upload Fehler:", error);
+        let msg = "Fehler beim Hochladen.";
+        if (error.code === 'storage/unauthorized') {
+          msg += " Zugriff verweigert. Haben Sie die 'Rules' in Firebase Storage auf 'allow read, write' (Testmodus) gestellt?";
+        } else if (error.code === 'storage/unknown') {
+          msg += " Unbekannter Fehler. Prüfen Sie Ihre Config.";
+        }
+        alert(msg);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -35,23 +65,26 @@ const ImageInput: React.FC<{
             onChange={(e) => onChange(e.target.value)}
             placeholder="https://beispiel.de/bild.jpg"
             className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 p-3 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-600 outline-none text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600"
+            disabled={isUploading}
           />
         </div>
         <div className="flex items-center gap-4">
-           <label className="cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700 flex items-center gap-2 shadow-sm">
-            <Upload size={16} />
-            <span>Datei wählen</span>
-            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+           <label className={`cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700 flex items-center gap-2 shadow-sm ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            <span>{isUploading ? 'Wird hochgeladen...' : 'Bild hochladen'}</span>
+            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={isUploading} />
           </label>
-          <span className="text-xs text-slate-500">Externe URL empfohlen</span>
+          <span className="text-xs text-slate-500">
+            {isUploading ? 'Bitte warten...' : 'JPG, PNG, WebP'}
+          </span>
         </div>
         {value && (
           <div className="mt-2">
             <p className="text-xs text-slate-500 mb-2 font-medium">Vorschau:</p>
             <div className="relative w-full max-w-xs h-32 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md group p-2 flex items-center justify-center">
                <img src={value} alt="Preview" className="max-w-full max-h-full object-contain" />
-               <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs rounded-lg">
-                 {value.startsWith('blob:') ? 'Lokal (Nicht öffentlich!)' : 'Externe URL'}
+               <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs rounded-lg px-2 text-center break-all">
+                 {value.length > 50 ? 'Bild gespeichert' : 'Externer Link'}
                </div>
             </div>
           </div>
