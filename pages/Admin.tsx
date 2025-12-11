@@ -79,25 +79,24 @@ export const Admin: React.FC = () => {
       const userHash = await hashString(cleanUser);
       const passHash = await hashString(cleanPass);
 
-      // 3. Vergleichen
+      // 3. Vergleichen (Debugging Log)
+      console.group("🔐 Admin Login Debug");
+      console.log(`Input User: "${cleanUser}" -> Hash: ${userHash}`);
+      console.log(`Expected User Hash: ${ADMIN_USERNAME_HASH}`);
+      console.log(`Input Pass: "${cleanPass.replace(/./g, '*')}" -> Hash: ${passHash}`);
+      console.log(`Expected Pass Hash: ${ADMIN_PASSWORD_HASH}`);
+      console.groupEnd();
+
       if (userHash === ADMIN_USERNAME_HASH && passHash === ADMIN_PASSWORD_HASH) {
+        console.log("✅ Login erfolgreich!");
         login();
       } else {
-        console.warn("Login Failed.");
-        console.group("Debug Login Infos (F12)");
-        console.log("Eingegebener User:", cleanUser);
-        console.log("Berechneter Hash:", userHash);
-        console.log("Erwarteter Hash (aus Env/Config):", ADMIN_USERNAME_HASH);
-        console.log("---");
-        console.log("Berechneter Pass Hash:", passHash);
-        console.log("Erwarteter Pass Hash:", ADMIN_PASSWORD_HASH);
-        console.groupEnd();
-        
-        setError("Benutzername oder Passwort falsch.");
+        console.warn("❌ Login fehlgeschlagen: Hashes stimmen nicht überein.");
+        setError("Die Zugangsdaten sind nicht korrekt. (Siehe Konsole F12 für Details)");
       }
     } catch (err) {
       console.error("Login Error:", err);
-      setError("Ein technischer Fehler ist aufgetreten.");
+      setError("Technischer Fehler bei der Anmeldung.");
     } finally {
       setIsChecking(false);
     }
@@ -117,7 +116,7 @@ export const Admin: React.FC = () => {
           
           <form onSubmit={handleLogin} className="space-y-6">
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm flex items-center gap-2">
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm flex items-center gap-2 animate-pulse">
                 <AlertCircle size={16} />
                 {error}
               </div>
