@@ -3,6 +3,13 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, Sender } from '../types';
 import { SYSTEM_INSTRUCTION, INITIAL_MESSAGE_TEXT } from '../constants';
 
+// WICHTIG: Damit TypeScript beim Build auf Netlify weiß, dass process.env existiert.
+declare const process: {
+  env: {
+    API_KEY: string;
+  }
+};
+
 export const useGeminiChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -19,6 +26,7 @@ export const useGeminiChat = () => {
 
   // Initialize the chat session once
   useEffect(() => {
+    // Safety check for API Key
     if (!process.env.API_KEY) {
       console.error("API Key is missing. Chat functionality will not work.");
       return;
