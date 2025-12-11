@@ -10,12 +10,13 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Versuche, das Theme aus dem LocalStorage zu laden, sonst Systempräferenz oder 'light'
+  // Wir setzen Standard auf 'light', ignorieren die Systempräferenz (prefers-color-scheme)
+  // damit das Design standardmäßig hell und freundlich bleibt, wie es für Reinigungsfirmen üblich ist.
+  // Der Dark Mode wird nur aktiviert, wenn der User ihn explizit gewählt hat (localStorage).
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
       const savedTheme = localStorage.getItem('theme') as Theme;
       if (savedTheme) return savedTheme;
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
     }
     return 'light';
   });
@@ -24,6 +25,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const root = window.document.documentElement;
     root.classList.remove('light', 'dark');
     root.classList.add(theme);
+    
+    // WICHTIG: Setzt das Browser-interne Farbschema (Scrollbars, Formularelemente)
+    // Dies verhindert, dass bei System-Darkmode z.B. dunkle Scrollbars im hellen Design erscheinen.
+    root.style.colorScheme = theme;
+
     localStorage.setItem('theme', theme);
   }, [theme]);
 
