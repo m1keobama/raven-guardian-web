@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { ref, onValue, set, update } from "firebase/database";
 
-// Initiale Daten (Standardwerte)
+// Initiale Daten (Standardwerte als Fallback)
 const defaultContent = {
   general: {
-    logo: "https://placehold.co/300x80/0f172a/ffffff?text=Raven+Guardian", // Angepasst für Dark Mode (heller Text)
+    logo: "https://placehold.co/300x80/0f172a/ffffff?text=Raven+Guardian",
   },
   carousel: [
     {
@@ -125,41 +127,93 @@ const ContentContext = createContext<any>(null);
 export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [content, setContent] = useState(defaultContent);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isDbConnected, setIsDbConnected] = useState(false);
+
+  // Verbindung zur Datenbank herstellen beim Start
+  useEffect(() => {
+    if (db) {
+      const contentRef = ref(db, 'content');
+      
+      // Abonniere Änderungen in der Datenbank
+      const unsubscribe = onValue(contentRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setContent(data);
+          setIsDbConnected(true);
+        } else {
+          // Wenn die Datenbank leer ist (erster Start), laden wir den Standardinhalt hoch
+          set(contentRef, defaultContent);
+          setIsDbConnected(true);
+        }
+      }, (error) => {
+        console.error("Datenbank Fehler:", error);
+        setIsDbConnected(false);
+      });
+
+      return () => unsubscribe();
+    }
+  }, []);
 
   const login = () => setIsAdmin(true);
   const logout = () => setIsAdmin(false);
 
+  // Hilfsfunktion zum Speichern in DB oder lokal
+  const saveChange = (newContent: any) => {
+    setContent(newContent); // Sofortiges lokales Update für schnelle UI
+    
+    if (db) {
+      // In die Cloud speichern
+      set(ref(db, 'content'), newContent).catch(err => {
+        console.error("Fehler beim Speichern:", err);
+        alert("Fehler beim Speichern in der Cloud. Überprüfen Sie Ihre Internetverbindung.");
+      });
+    }
+  };
+
   const updateContent = (section: string, key: string, value: any) => {
-    setContent((prev: any) => ({
-      ...prev,
+    const newContent = {
+      ...content,
       [section]: {
-        ...prev[section],
+        ...content[section],
         [key]: value
       }
-    }));
+    };
+    saveChange(newContent);
   };
 
   const updateNestedContent = (section: string, subSection: string, key: string, value: any) => {
-    setContent((prev: any) => ({
-      ...prev,
+    const newContent = {
+      ...content,
       [section]: {
-        ...prev[section],
+        ...content[section],
         [subSection]: {
-          ...prev[section][subSection],
+          ...content[section][subSection],
           [key]: value
         }
       }
-    }));
+    };
+    saveChange(newContent);
   };
 
   const updateCarousel = (index: number, key: string, value: any) => {
     const newCarousel = [...content.carousel];
     newCarousel[index] = { ...newCarousel[index], [key]: value };
-    setContent((prev: any) => ({ ...prev, carousel: newCarousel }));
+    
+    const newContent = { ...content, carousel: newCarousel };
+    saveChange(newContent);
   };
 
   return (
-    <ContentContext.Provider value={{ content, updateContent, updateNestedContent, updateCarousel, isAdmin, login, logout }}>
+    <ContentContext.Provider value={{ 
+      content, 
+      updateContent, 
+      updateNestedContent, 
+      updateCarousel, 
+      isAdmin, 
+      login, 
+      logout,
+      isDbConnected 
+    }}>
       {children}
     </ContentContext.Provider>
   );

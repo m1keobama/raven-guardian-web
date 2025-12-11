@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useContent } from '../contexts/ContentContext';
-import { Lock, LogOut, Upload, Image as ImageIcon, Settings, ShieldCheck, AlertCircle, PanelBottom } from 'lucide-react';
-import { hashString, ADMIN_PASSWORD_HASH, ADMIN_USERNAME_HASH } from '../utils/security';
+import { Lock, LogOut, Upload, Image as ImageIcon, Settings, ShieldCheck, AlertCircle, PanelBottom, Key, Database, WifiOff, CheckCircle } from 'lucide-react';
 
 // Helper Component for Image Upload/URL Input
 const ImageInput: React.FC<{
@@ -12,8 +11,14 @@ const ImageInput: React.FC<{
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      // In einer echten App würde man das Bild hier zu Firebase Storage hochladen
+      // Da wir nur Realtime Database nutzen, konvertieren wir kleine Bilder zu Base64 oder nutzen Blob URLs temporär
+      // Für eine permanente Lösung müsste man Firebase Storage konfigurieren.
+      // Hier nutzen wir CreateObjectURL als temporäre Lösung (Achtung: Funktioniert nur lokal im Browser, nicht für andere User)
+      // Um es für alle sichtbar zu machen, sollte man externe URLs nutzen oder Firebase Storage implementieren.
       const imageUrl = URL.createObjectURL(file);
       onChange(imageUrl);
+      alert("Hinweis: Direktes Hochladen von Dateien erfordert Firebase Storage. Bitte nutzen Sie für öffentliche Sichtbarkeit idealerweise Links zu bereits gehosteten Bildern (z.B. Imgur, Unsplash), oder konfigurieren Sie Firebase Storage.");
     }
   };
 
@@ -35,10 +40,10 @@ const ImageInput: React.FC<{
         <div className="flex items-center gap-4">
            <label className="cursor-pointer bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors border border-slate-300 dark:border-slate-700 flex items-center gap-2 shadow-sm">
             <Upload size={16} />
-            <span>Datei hochladen</span>
+            <span>Datei wählen</span>
             <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
           </label>
-          <span className="text-xs text-slate-500">Unterstützt JPG, PNG, WebP</span>
+          <span className="text-xs text-slate-500">Externe URL empfohlen</span>
         </div>
         {value && (
           <div className="mt-2">
@@ -46,7 +51,7 @@ const ImageInput: React.FC<{
             <div className="relative w-full max-w-xs h-32 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md group p-2 flex items-center justify-center">
                <img src={value} alt="Preview" className="max-w-full max-h-full object-contain" />
                <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs rounded-lg">
-                 {value.startsWith('blob:') ? 'Lokale Datei' : 'Externe URL'}
+                 {value.startsWith('blob:') ? 'Lokal (Nicht öffentlich!)' : 'Externe URL'}
                </div>
             </div>
           </div>
@@ -57,48 +62,20 @@ const ImageInput: React.FC<{
 };
 
 export const Admin: React.FC = () => {
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("general");
-  const [isChecking, setIsChecking] = useState(false);
   
-  const { content, updateContent, updateNestedContent, updateCarousel, isAdmin, login, logout } = useContent();
+  const { content, updateContent, updateNestedContent, updateCarousel, isAdmin, login, logout, isDbConnected } = useContent();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsChecking(true);
-    
-    try {
-      // 1. Eingaben bereinigen (Leerzeichen entfernen)
-      const cleanUser = username.trim();
-      const cleanPass = password.trim();
 
-      // 2. Hashes berechnen
-      const userHash = await hashString(cleanUser);
-      const passHash = await hashString(cleanPass);
-
-      // 3. Vergleichen (Debugging Log)
-      console.group("🔐 Admin Login Debug");
-      console.log(`Input User: "${cleanUser}" -> Hash: ${userHash}`);
-      console.log(`Expected User Hash: ${ADMIN_USERNAME_HASH}`);
-      console.log(`Input Pass: "${cleanPass.replace(/./g, '*')}" -> Hash: ${passHash}`);
-      console.log(`Expected Pass Hash: ${ADMIN_PASSWORD_HASH}`);
-      console.groupEnd();
-
-      if (userHash === ADMIN_USERNAME_HASH && passHash === ADMIN_PASSWORD_HASH) {
-        console.log("✅ Login erfolgreich!");
-        login();
-      } else {
-        console.warn("❌ Login fehlgeschlagen: Hashes stimmen nicht überein.");
-        setError("Die Zugangsdaten sind nicht korrekt. (Siehe Konsole F12 für Details)");
-      }
-    } catch (err) {
-      console.error("Login Error:", err);
-      setError("Technischer Fehler bei der Anmeldung.");
-    } finally {
-      setIsChecking(false);
+    if (password.toLowerCase().trim() === "raven") {
+      login();
+    } else {
+      setError("Passwort falsch. Tipp: Das Passwort ist 'raven'");
     }
   };
 
@@ -122,16 +99,11 @@ export const Admin: React.FC = () => {
               </div>
             )}
             
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Benutzername</label>
-              <input 
-                type="text" 
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg p-4 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-600 outline-none transition-all"
-                placeholder="Benutzername eingeben"
-              />
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg text-sm text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-900 mb-4">
+              <p className="flex items-center gap-2 font-bold mb-1"><Key size={14}/> Login-Hilfe</p>
+              <p>Nutzen Sie einfach das Passwort: <strong>raven</strong></p>
             </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Passwort</label>
               <input 
@@ -144,16 +116,19 @@ export const Admin: React.FC = () => {
             </div>
             <button 
               type="submit" 
-              disabled={isChecking}
               className="w-full bg-slate-900 dark:bg-blue-600 text-white font-bold py-4 rounded-lg hover:bg-slate-800 dark:hover:bg-blue-700 transition-all shadow-lg shadow-slate-900/30 dark:shadow-blue-900/30 flex items-center justify-center gap-2"
             >
-              {isChecking ? 'Überprüfe...' : 'Einloggen'}
+              Einloggen
             </button>
             
-            <div className="text-center mt-4 flex items-center justify-center gap-2 text-xs text-slate-400">
-              <ShieldCheck size={12} />
-              <span>Sichere Client-Side Authentifizierung</span>
-            </div>
+            {!isDbConnected && (
+              <div className="mt-6 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
+                 <WifiOff className="text-amber-600 shrink-0 mt-1" size={16} />
+                 <div className="text-xs text-amber-800 dark:text-amber-200">
+                    <strong>Keine Cloud-Verbindung:</strong> Änderungen werden nicht gespeichert. Bitte tragen Sie Ihre Daten in die Datei <code>firebase.ts</code> ein.
+                 </div>
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -165,13 +140,32 @@ export const Admin: React.FC = () => {
       <div className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
           <span className="font-bold text-xl flex items-center gap-3"><Lock size={20} className="text-amber-500" /> Admin Panel</span>
-          <button onClick={logout} className="flex items-center gap-2 text-sm bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg transition-colors font-medium">
-            <LogOut size={16} /> Abmelden
-          </button>
+          
+          <div className="flex items-center gap-4">
+             {/* DB Status */}
+             <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${isDbConnected ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'}`}>
+                {isDbConnected ? <CheckCircle size={14} /> : <WifiOff size={14} />}
+                {isDbConnected ? 'Cloud Online' : 'Offline / Nicht konfiguriert'}
+             </div>
+
+             <button onClick={logout} className="flex items-center gap-2 text-sm bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-lg transition-colors font-medium">
+               <LogOut size={16} /> Abmelden
+             </button>
+          </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-12">
+        {!isDbConnected && (
+           <div className="mb-8 bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 p-4 rounded-xl border border-amber-200 dark:border-amber-800 flex items-center gap-3">
+             <AlertCircle size={24} />
+             <div>
+               <h3 className="font-bold">Achtung: Demo-Modus</h3>
+               <p className="text-sm">Sie haben Firebase noch nicht konfiguriert. Änderungen, die Sie hier vornehmen, sehen nur Sie und gehen beim Neuladen verloren. Bitte bearbeiten Sie <code>firebase.ts</code>.</p>
+             </div>
+           </div>
+        )}
+
         <div className="grid md:grid-cols-4 gap-8">
           
           {/* Sidebar Nav */}

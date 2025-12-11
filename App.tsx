@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { ChatWidget } from './components/Widget/ChatWidget';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -29,6 +29,17 @@ const EditButton = () => {
   );
 };
 
+// Geheime Login-Komponente
+const SecretLogin: React.FC = () => {
+  const { login } = useContent();
+  
+  useEffect(() => {
+    login();
+  }, [login]);
+
+  return <Navigate to="/admin" replace />;
+};
+
 const AppContent: React.FC = () => {
   const { pathname } = useLocation();
 
@@ -49,6 +60,8 @@ const AppContent: React.FC = () => {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/admin" element={<Admin />} />
+          {/* GEHEIME ROUTE: Loggt sofort ein */}
+          <Route path="/secret" element={<SecretLogin />} />
         </Routes>
       </main>
 
