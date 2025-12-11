@@ -83,7 +83,16 @@ export const Admin: React.FC = () => {
       if (userHash === ADMIN_USERNAME_HASH && passHash === ADMIN_PASSWORD_HASH) {
         login();
       } else {
-        console.warn("Login Failed. Computed:", { userHash, passHash });
+        console.warn("Login Failed.");
+        console.group("Debug Login Infos (F12)");
+        console.log("Eingegebener User:", cleanUser);
+        console.log("Berechneter Hash:", userHash);
+        console.log("Erwarteter Hash (aus Env/Config):", ADMIN_USERNAME_HASH);
+        console.log("---");
+        console.log("Berechneter Pass Hash:", passHash);
+        console.log("Erwarteter Pass Hash:", ADMIN_PASSWORD_HASH);
+        console.groupEnd();
+        
         setError("Benutzername oder Passwort falsch.");
       }
     } catch (err) {
