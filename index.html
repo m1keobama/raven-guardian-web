@@ -17,33 +17,18 @@
         }
       }
     </script>
-
-    <!-- 🔥 Hier der neue Anti-Darkmode-Code -->
-    <script>
-      // Dark Mode komplett deaktivieren – immer Light Mode
-      document.documentElement.classList.remove("dark");
-      document.documentElement.setAttribute("data-theme", "light");
-    </script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
       :root {
-        color-scheme: light; /* Browser-Darkmode ignorieren */
+        /* Standardmäßig Light Mode für Browser-UI erzwingen, bis JS lädt */
+        color-scheme: light;
       }
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #ffffff;
+        /* Expliziter weißer Hintergrund verhindert dunkles Flackern beim Laden */
+        background-color: #ffffff; 
         color: #0f172a;
       }
-
-      /* Falls Komponenten dark:-Klassen nutzen → neutralisieren */
-      .dark &, 
-      .dark * {
-        background-color: inherit !important;
-        color: inherit !important;
-      }
-
       /* Custom scrollbar for chat window */
       .scrollbar-hide::-webkit-scrollbar {
           display: none;
@@ -53,23 +38,21 @@
           scrollbar-width: none;
       }
     </style>
-
-    <script type="importmap">
-    {
-      "imports": {
-        "react/": "https://esm.sh/react@^19.2.1/",
-        "react": "https://esm.sh/react@^19.2.1",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
-        "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
-        "lucide-react": "https://esm.sh/lucide-react@^0.560.0",
-        "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
-        "vite": "https://esm.sh/vite@^7.2.7",
-        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-      }
-    }
-    </script>
-  </head>
-
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.1/",
+    "react": "https://esm.sh/react@^19.2.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.1/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.560.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "vite": "https://esm.sh/vite@^7.2.7",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
+</head>
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
