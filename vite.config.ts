@@ -10,8 +10,9 @@ export default defineConfig(({ mode }) => {
     define: {
       // Damit diese Variablen im Frontend verfügbar sind, müssen wir sie hier definieren
       'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      'process.env.ADMIN_USER_HASH': JSON.stringify(env.ADMIN_USER_HASH),
-      'process.env.ADMIN_PASS_HASH': JSON.stringify(env.ADMIN_PASS_HASH),
+      // Nutze leeren String als Fallback, falls Variable nicht existiert
+      'process.env.ADMIN_USER_HASH': JSON.stringify(env.ADMIN_USER_HASH || ""),
+      'process.env.ADMIN_PASS_HASH': JSON.stringify(env.ADMIN_PASS_HASH || ""),
     }
   }
 })
